@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Plan Organiser</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #eef2f7;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #263859;
+        }
+
+        .container {
+            max-width: 750px;
+            margin: auto;
+            background-color: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        input, select, button {
+            padding: 12px;
+            margin: 6px 0;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+
+        input, select {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #263859;
+            color: white;
+            cursor: pointer;
+            border: none;
+        }
+
+        button:hover {
+            background-color: #405b8c;
+        }
+
+        .task {
+            background-color: #f1f4fa;
+            padding: 15px;
+            margin-top: 12px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .task-info {
+            flex: 1;
+        }
+
+        .completed {
+            text-decoration: line-through;
+            color: gray;
+        }
+
+        .delete {
+            background-color: #e74c3c;
+        }
+
+        .stats {
+            text-align: center;
+            background-color: #e4ebf7;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .task button {
+            padding: 8px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+        }
+
+        .filters button {
+            flex: 1;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <h1>My Personal Planner</h1>
+
+    <div class="container">
+
+        <h2>Add a New Plan</h2>
+
+        <input type="text" id="taskName"
+        placeholder="Enter your task">
+
+        <input type="date" id="taskDate">
+
+        <select id="category">
+            <option value="Study">Study</option>
+            <option value="Personal">Personal</option>
+            <option value="Work">Work</option>
+            <option value="Exercise">Exercise</option>
+            <option value="Other">Other</option>
+        </select>
+
+        <select id="priority">
+            <option value="High">High Priority</option>
+            <option value="Medium">Medium Priority</option>
+            <option value="Low">Low Priority</option>
+        </select>
+
+        <button onclick="addTask()">Add Plan</button>
+
+        <div class="stats">
+            <h3>My Progress</h3>
+            <p id="progress">0 / 0 Tasks Completed</p>
+        </div>
+
+        <h2>My Tasks</h2>
+
+        <div class="filters">
+            <button onclick="showTasks('All')">All</button>
+            <button onclick="showTasks('Pending')">Pending</button>
+            <button onclick="showTasks('Completed')">Completed</button>
+        </div>
+
+        <div id="taskList"></div>
+
+    </div>
+
+<script>
+
+    let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+    let currentFilter = "All";
+
+    function saveTasks() {
+        localStorage.setItem("tasks", JSON.stringify(tasks));
+    }
+
+    function addTask() {
+
+        let name = document.getElementById("taskName").value;
+        let date = document.getElementById("taskDate").value;
+        let category = document.getElementById("category").value;
+        let priority = document.getElementById("priority").value;
+
+        if (name === "" || date === "") {
+            alert("Please enter a task and a date!");
+            return;
+        }
+
+        let task = {
+            name: name,
+            date: date,
+            category: category,
+            priority: priority,
+            completed: false
+        };
+
+        tasks.push(task);
+
+        saveTasks();
+
+        document.getElementById("taskName").value = "";
+        document.getElementById("taskDate").value = "";
+
+        displayTasks();
+
+    }
+
+    function displayTasks() {
+
+        let list = document.getElementById("taskList");
+
+        list.innerHTML = "";
+
+        let filteredTasks = tasks.filter(task => {
+
+            if (currentFilter === "Pending") {
+                return !task.completed;
+            }
+
+            if (currentFilter === "Completed") {
+                return task.completed;
+            }
+
+            return true;
+
+        });
+
+        filteredTasks.forEach((task) => {
+
+            let index = tasks.indexOf(task);
+
+            let div = document.createElement("div");
+
+            div.className = "task";
+
+            div.innerHTML = `
+                <div class="task-info">
+                    <strong class="${task.completed ? 'completed' : ''}">
+                        ${escapeHTML(task.name)}
+                    </strong>
+
+                    <br>
+
+                    <small>
+                        Date: ${task.date}
+                        <br>
+                        Category: ${escapeHTML(task.category)}
+                        <br>
+                        Priority: ${escapeHTML(task.priority)}
+                    </small>
+                </div>
+
+                <button onclick="completeTask(${index})">
+                    ${task.completed ? "Undo" : "Done"}
+                </button>
+
+                <button class="delete"
+                onclick="deleteTask(${index})">
+                    Delete
+                </button>
+            `;
+
+            list.appendChild(div);
+
+        });
+
+        updateProgress();
+
+    }
+
+    function escapeHTML(text) {
+        return String(text).replace(/[&<>"']/g, char => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+        })[char]);
+    }
+
+    function completeTask(index) {
+
+        tasks[index].completed = !tasks[index].completed;
+
+        saveTasks();
+
+        displayTasks();
+
+    }
+
+    function deleteTask(index) {
+
+        tasks.splice(index, 1);
+
+        saveTasks();
+
+        displayTasks();
+
+    }
+
+    function showTasks(filter) {
+
+        currentFilter = filter;
+
+        displayTasks();
+
+    }
+
+    function updateProgress() {
+
+        let completed = tasks.filter(task => task.completed).length;
+
+        document.getElementById("progress").innerText =
+            completed + " / " + tasks.length + " Tasks Completed";
+
+    }
+
+    displayTasks();
+
+</script>
+
+</body>
+</html>
